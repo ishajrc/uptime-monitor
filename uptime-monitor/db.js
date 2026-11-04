@@ -62,6 +62,36 @@ function getStatusOverview() {
     .all();
 }
 
+// Uptime percentage over the last N hours (null if there is no data yet)
+function getUptime(siteId, hours) {
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN status = 'up' THEN 1 ELSE 0 END) AS up_count
+       FROM checks
+       WHERE site_id = ? AND checked_at >= datetime('now', ?)`
+    )
+    .get(siteId, `-${hours} hours`);
+
+  if (!row.total) return null;
+  return Math.round((row.up_count / row.total) * 1000) / 10; // one decimal place
+}
+
+// Safe-to-share data for the public status page
+function getPublicStatus() {
+  return getStatusOverview().map((site) => ({
+    name: site.name,
+    status: site.status,
+    response_time_ms: site.response_time_ms,
+    checked_at: site.checked_at,
+    uptime_24h: getUptime(site.id, 24),
+    uptime_7d: getUptime(site.id, 168),
+    history: getChecks(site.id, 30)
+      .reverse()
+      .map((check) => check.status),
+  }));
+}
+
 module.exports = {
   getSites,
   addSite,
@@ -69,4 +99,6 @@ module.exports = {
   saveCheck,
   getChecks,
   getStatusOverview,
+  getUptime,
+  getPublicStatus,
 };

@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('./db');
 const { startMonitor } = require('./monitor');
+const path = require('path');
 
 const app = express();
 const PORT = 3000;
@@ -41,6 +42,16 @@ app.get('/api/sites/:id/checks', (req, res) => {
 // Every site with its latest status
 app.get('/api/status', (req, res) => {
   res.json(db.getStatusOverview());
+});
+
+// Public API: no URLs or internal ids
+app.get('/api/public-status', (req, res) => {
+  res.json(db.getPublicStatus());
+});
+
+// Public status page
+app.get('/status', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'status.html'));
 });
 
 app.listen(PORT, () => {
