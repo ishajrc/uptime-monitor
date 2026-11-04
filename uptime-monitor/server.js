@@ -6,10 +6,7 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
-
-app.get('/', (req, res) => {
-  res.send('Uptime monitor is running!');
-});
+app.use(express.static('public'));
 
 app.get('/api/sites', (req, res) => {
   res.json(db.getSites());

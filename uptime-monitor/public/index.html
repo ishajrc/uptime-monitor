@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uptime Monitor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Uptime Monitor</h1>
+
+    <form id="add-form">
+      <input type="text" id="name" placeholder="Name (e.g. My Website)" required>
+      <input type="url" id="url" placeholder="https://example.com" required>
+      <button type="submit">Add site</button>
+    </form>
+
+    <p id="summary"></p>
+    <div id="sites"></div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
