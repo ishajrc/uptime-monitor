@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('./db');
+const { startMonitor } = require('./monitor');
 
 const app = express();
 const PORT = 3000;
@@ -10,12 +11,10 @@ app.get('/', (req, res) => {
   res.send('Uptime monitor is running!');
 });
 
-// GET all sites
 app.get('/api/sites', (req, res) => {
   res.json(db.getSites());
 });
 
-// POST: add a new site
 app.post('/api/sites', (req, res) => {
   const { name, url } = req.body;
 
@@ -27,7 +26,6 @@ app.post('/api/sites', (req, res) => {
   res.status(201).json(site);
 });
 
-// DELETE: remove a site by id
 app.delete('/api/sites/:id', (req, res) => {
   const deleted = db.deleteSite(Number(req.params.id));
 
@@ -38,6 +36,17 @@ app.delete('/api/sites/:id', (req, res) => {
   res.json({ message: 'Site deleted' });
 });
 
+// Check history for one site
+app.get('/api/sites/:id/checks', (req, res) => {
+  res.json(db.getChecks(Number(req.params.id)));
+});
+
+// Every site with its latest status
+app.get('/api/status', (req, res) => {
+  res.json(db.getStatusOverview());
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  startMonitor();
 });
