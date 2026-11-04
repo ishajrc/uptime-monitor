@@ -79,17 +79,24 @@ function getUptime(siteId, hours) {
 
 // Safe-to-share data for the public status page
 function getPublicStatus() {
-  return getStatusOverview().map((site) => ({
-    name: site.name,
-    status: site.status,
-    response_time_ms: site.response_time_ms,
-    checked_at: site.checked_at,
-    uptime_24h: getUptime(site.id, 24),
-    uptime_7d: getUptime(site.id, 168),
-    history: getChecks(site.id, 30)
-      .reverse()
-      .map((check) => check.status),
-  }));
+  return getStatusOverview().map((site) => {
+    const recent = getChecks(site.id, 60).reverse(); // oldest first
+
+    return {
+      name: site.name,
+      status: site.status,
+      response_time_ms: site.response_time_ms,
+      checked_at: site.checked_at,
+      uptime_24h: getUptime(site.id, 24),
+      uptime_7d: getUptime(site.id, 168),
+      history: recent.slice(-30).map((check) => check.status),
+      response_times: recent.map((check) => ({
+        checked_at: check.checked_at,
+        // only successful checks have a meaningful speed
+        ms: check.status === 'up' ? check.response_time_ms : null,
+      })),
+    };
+  });
 }
 
 module.exports = {
