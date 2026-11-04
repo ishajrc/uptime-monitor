@@ -1,22 +1,18 @@
 const express = require('express');
+const db = require('./db');
+
 const app = express();
 const PORT = 3000;
 
-// Lets the server read JSON sent by the browser
 app.use(express.json());
 
-// Temporary storage (replaced by a database in Step 3)
-let sites = [];
-let nextId = 1;
-
-// Home route
 app.get('/', (req, res) => {
   res.send('Uptime monitor is running!');
 });
 
 // GET all sites
 app.get('/api/sites', (req, res) => {
-  res.json(sites);
+  res.json(db.getSites());
 });
 
 // POST: add a new site
@@ -27,21 +23,18 @@ app.post('/api/sites', (req, res) => {
     return res.status(400).json({ error: 'name and url are required' });
   }
 
-  const site = { id: nextId++, name, url };
-  sites.push(site);
+  const site = db.addSite(name, url);
   res.status(201).json(site);
 });
 
 // DELETE: remove a site by id
 app.delete('/api/sites/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const index = sites.findIndex((site) => site.id === id);
+  const deleted = db.deleteSite(Number(req.params.id));
 
-  if (index === -1) {
+  if (!deleted) {
     return res.status(404).json({ error: 'Site not found' });
   }
 
-  sites.splice(index, 1);
   res.json({ message: 'Site deleted' });
 });
 
