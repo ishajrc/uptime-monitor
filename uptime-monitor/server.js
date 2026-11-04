@@ -1,14 +1,43 @@
 require('dotenv').config();
+
 const express = require('express');
+const path = require('path');
 const db = require('./db');
 const { startMonitor } = require('./monitor');
-const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static('public'));
+
+// Password protection for admin features
+function requireAdmin(req, res, next) {
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password) return next(); // no password set: local development
+
+  const header = req.headers.authorization || '';
+  if (header.startsWith('Basic ')) {
+    const decoded = Buffer.from(header.slice(6), 'base64').toString();
+    const given = decoded.slice(decoded.indexOf(':') + 1);
+    if (given === password) return next();
+  }
+
+  res.set('WWW-Authenticate', 'Basic realm="Uptime Monitor Admin"');
+  res.status(401).send('Authentication required');
+}
+
+// Lightweight route for keep-alive pings
+app.get('/health', (req, res) => {
+  res.send('ok');
+});
+
+// Admin dashboard (password protected)
+app.get(['/', '/index.html'], requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+app.use(['/api/sites', '/api/status'], requireAdmin);
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/sites', (req, res) => {
   res.json(db.getSites());
@@ -35,27 +64,34 @@ app.delete('/api/sites/:id', (req, res) => {
   res.json({ message: 'Site deleted' });
 });
 
-// Check history for one site
 app.get('/api/sites/:id/checks', (req, res) => {
   res.json(db.getChecks(Number(req.params.id)));
 });
 
-// Every site with its latest status
 app.get('/api/status', (req, res) => {
   res.json(db.getStatusOverview());
 });
 
-// Public API: no URLs or internal ids
+// Public (no password, no internal URLs or ids)
 app.get('/api/public-status', (req, res) => {
   res.json(db.getPublicStatus());
 });
 
-// Public status page
 app.get('/status', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'status.html'));
 });
 
+// Free hosting wipes the database on restart, so re-add demo sites if empty
+function seedDemoSites() {
+  if (db.getSites().length === 0) {
+    db.addSite('GitHub', 'https://github.com');
+    db.addSite('Wikipedia', 'https://www.wikipedia.org');
+    db.addSite('Google', 'https://www.google.com');
+  }
+}
+
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
+  seedDemoSites();
   startMonitor();
 });
